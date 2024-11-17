@@ -28,22 +28,34 @@ def parse_ssh_config(config_path):
 def display_hosts(hosts):
     # 列出所有主机的别名和 IP，并让用户选择
     print("可用的服务器列表:")
+    alias_map = {}
     for idx, host in enumerate(hosts, start=1):
         alias = host.get("alias", "Unknown")
         hostname = host.get("hostname", "Unknown")
         user = host.get("user", "root")
         print(f"{idx}. {alias} - {hostname} ({user})")
+        alias_map[str(idx)] = host  # 映射序号到主机
+        alias_map[alias] = host  # 映射别名到主机
+
     print("0. 退出")  # 添加退出选项
-    choice = input("请输入您想要连接的服务器编号（输入 0 退出）: ")
-    return int(choice) - 1 if choice.isdigit() and 0 <= int(choice) <= len(hosts) else None
+    while True:
+        choice = input("请输入您想要连接的服务器编号、主机别名，或输入 '0'、'exit'、'q' 退出: ").strip().lower()
+
+        if choice in {"0", "exit", "q"}:
+            print("程序已退出。")
+            return None  # 退出
+        elif choice in alias_map:
+            return hosts.index(alias_map[choice])  # 返回对应的索引
+        else:
+            print("无效的输入，请重新输入。")
 
 
 def connect_to_host(host):
-    # 使用 PowerShell 连接到所选服务器并分配伪终端
+    # 使用 PowerShell 连接到所选服务器并分配伪终端，添加 HostKeyAlgorithms 参数
     hostname = host.get("hostname")
     port = host.get("port", "22")
     user = host.get("user", "root")
-    command = f'powershell -NoExit ssh -t -p {port} {user}@{hostname}'
+    command = f'powershell -NoExit ssh -t -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa -p {port} {user}@{hostname}'
 
     try:
         process = subprocess.Popen(command, shell=True)
@@ -62,11 +74,11 @@ if __name__ == "__main__":
         if not hosts:
             print("未找到任何主机配置")
         else:
-            selected_index = display_hosts(hosts)
-            if selected_index is not None:
-                if selected_index == -1:  # 用户选择 0 退出
-                    print("程序已退出。")
+            while True:
+                selected_index = display_hosts(hosts)
+                if selected_index is None:  # 用户选择退出
+                    break
                 else:
-                    connect_to_host(hosts[selected_index])
-            else:
-                print("无效的输入，程序退出。")
+                    connect_to_host(hosts[selected_index])  # 连接服务器后直接退出程序
+                    break  # 连接完成后退出主循环
+

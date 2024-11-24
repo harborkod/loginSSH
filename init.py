@@ -68,7 +68,7 @@ def connect_to_host(host):
     hostkeyalgorithms = host.get("hostkeyalgorithms", "+ssh-rsa")
     pubkeyacceptedalgorithms = host.get("pubkeyacceptedalgorithms", "+ssh-rsa")
 
-    command = f'powershell ssh -t -o HostKeyAlgorithms={hostkeyalgorithms} -o PubkeyAcceptedAlgorithms={pubkeyacceptedalgorithms} -p {port} -i {identityfile} {user}@{hostname}'
+    command = f'powershell -NoExit ssh -tt -o HostKeyAlgorithms={hostkeyalgorithms} -o PubkeyAcceptedAlgorithms={pubkeyacceptedalgorithms} -p {port} -i {identityfile} {user}@{hostname}'
 
     try:
         process = subprocess.Popen(command, shell=True)
